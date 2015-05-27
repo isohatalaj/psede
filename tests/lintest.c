@@ -33,8 +33,8 @@
 #include <stdlib.h>
 #include <math.h>
 
-#include "cps.h"
-#include "cps_ode.h"
+#include "psede.h"
+#include "psede_ode.h"
 
 /** Test linear differential equation function.  Evaluates the
  *  differential equation in the form required by #cps_linode_solve,
@@ -61,13 +61,12 @@ testfun(double x, double *A, double *Q, double *C, void *vpars)
   return 0;
 }
 
-/** Main function */
 int
 main()
 {
   int status;
 
-  cps_ode_t *cps;
+  psede_ode_t *odesolver;
 
   int n_dim = 2;	/*< Dimension of our ODE proble, here two */
   int n_size = 16;      /*< Order of the solver to use */
@@ -76,23 +75,19 @@ main()
 
   /* ODE system parameters, here vector of (p, q) */
   double pars[2] = {1.0, -1.0}; 
+
+  /* Boundary conditions */
   int nbcs = 2;         /*< Number of boundary conditions */
-
-  /* Boundary conditions, right hand side */
-  double bcs[8] = {1.0, 0.0, 0.0, 0.0,
-		   0.0, 1.0, 0.0, 0.0};
-
-  /* Boundary conditions, left hand side */
-  double gammas[2] = {0.0, 1.0};
-
-  /* Layout of the boundary conditions in the finite linear problem */
+  double B[8] = {1.0, 0.0, 0.0, 0.0,
+		 0.0, 1.0, 0.0, 0.0};
+  double gamma[2] = {0.0, 1.0};
   int ls[2] = {1, 2};
 
   /* Analytic solution is C1*exp(b1) + C2*exp(b2) where: */
   double b1 = 0.5*(-pars[0] + sqrt(pars[0]*pars[0]-4*pars[1]));
   double b2 = 0.5*(-pars[0] - sqrt(pars[0]*pars[0]-4*pars[1]));
-  double C2 = (gammas[1] - b1*gammas[0])/(b2 - b1);
-  double C1 = gammas[0] - C2;
+  double C2 = (gamma[1] - b1*gamma[0])/(b2 - b1);
+  double C1 = gamma[0] - C2;
 
   printf("# Solving differential equation\n"
 	 "#\n"
@@ -122,42 +117,44 @@ main()
 	 "#    beta1 = %25.15lf, beta2 = %25.15lf\n"
 	 "#\n"
 	 , pars[0], pars[1]
-	 , bcs[0], bcs[1], bcs[2], bcs[3]
-	 , bcs[4], bcs[5], bcs[6], bcs[7]
-	 , gammas[0], gammas[1]
+	 , B[0], B[1], B[2], B[3]
+	 , B[4], B[5], B[6], B[7]
+	 , gamma[0], gamma[1]
 	 , C1, C2
 	 , b1, b2
 	 );
 
-  cps = cps_ode_make(n_size, n_dim);
-  if (cps == NULL)
+  odesolver = psede_ode_alloc(n_size, n_dim);
+  if (odesolver == NULL)
     {
       fprintf(stderr, "Failed creating solver object.\n");
       return 1;
     }
 
-  status = cps_linode_solve(cps,
-  			    x0, x1,
-  			    testfun, pars,
-  			    nbcs, bcs, gammas, ls);
+  status = psede_ode_linear_solve(odesolver,
+				  x0, x1,
+				  testfun, pars,
+				  nbcs, B, gamma, ls);
   if (status)
     {
       fprintf(stderr, "Linear ODE solver failed.\n");
-      cps_ode_free(cps);
+      psede_ode_free(odesolver);
       return 2;
     }
 
 
   int i;
-  
+  double *xs = odesolver->x;
+  double *ys = odesolver->y;
+
   for (i = 0; i < n_size; ++i)
     {
-      double x = 0.5*(x1-x0)*cps->x[i] + 0.5*(x0+x1);
+      double x = 0.5*(x1-x0)*xs[i] + 0.5*(x0+x1);
       double ya = C1*exp(b1*x) + C2*exp(b2*x);
       double dya = C1*b1*exp(b1*x) + C2*b2*exp(b2*x);
 
-      double yn = cps->y[n_dim*i + 0];
-      double dyn = cps->y[n_dim*i + 1];
+      double yn = ys[n_dim*i + 0];
+      double dyn = ys[n_dim*i + 1];
 	
       double yerr = log10(fabs(yn - ya));
       double dyerr = log10(fabs(dyn - dya));
@@ -171,7 +168,8 @@ main()
 		 , "y(x) logerror", "y'(x) logerror"
 		 );
 	}
-      printf(" %25.15lf %25.15lf %25.15lf %25.15lf %25.15lf %25.15lf %25.15lf\n"
+      printf(" %25.15lf %25.15lf %25.15lf %25.15lf %25.15lf"
+	     " %25.15lf %25.15lf\n"
 	     , x
 	     , yn, dyn
 	     , ya, dya
@@ -179,6 +177,6 @@ main()
 	     );
     }
 			    
-  cps_ode_free(cps);
+  psede_ode_free(odesolver);
   return 0;
 }
