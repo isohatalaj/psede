@@ -64,7 +64,7 @@ testfun(double x, double *A, double *Q, double *C, void *vpars)
 int
 main()
 {
-  int status;
+  int status = 0;
 
   psede_ode_t *odesolver;
 
@@ -100,12 +100,12 @@ main()
 	 "#\n"
 	 "# where\n"
 	 "#\n"
-	 "#    p = %25.15lf, q = %25.15lf\n"
+	 "#    p      = %21.15lf, q      = %21.15lf\n"
 	 "#\n"
-	 "#    b00 = %25.15lf, b01 = %25.15lf, b02 = %25.15lf, b03 = %25.15lf\n"
-	 "#    b10 = %25.15lf, b11 = %25.15lf, b12 = %25.15lf, b13 = %25.15lf\n"
+	 "#    b00    = %21.15lf, b01    = %21.15lf, b02    = %21.15lf, b03    = %21.15lf\n"
+	 "#    b10    = %21.15lf, b11    = %21.15lf, b12    = %21.15lf, b13    = %21.15lf\n"
 	 "#\n"
-	 "#    gamma0 = %25.15lf, gamma1 = %25.15lf\n"
+	 "#    gamma0 = %21.15lf, gamma1 = %21.15lf\n"
 	 "#\n"
 	 "# Analytic solution is\n"
 	 "#\n"
@@ -113,8 +113,8 @@ main()
 	 "#\n"
 	 "# where\n"
 	 "#\n"
-	 "#    C1 = %25.15lf, C2 = %25.15lf\n"
-	 "#    beta1 = %25.15lf, beta2 = %25.15lf\n"
+	 "#    C1    = %21.15lf, C2    = %21.15lf\n"
+	 "#    beta1 = %21.15lf, beta2 = %21.15lf\n"
 	 "#\n"
 	 , pars[0], pars[1]
 	 , B[0], B[1], B[2], B[3]
@@ -132,9 +132,9 @@ main()
     }
 
   status = psede_ode_linear_solve(odesolver,
-				  x0, x1,
-				  testfun, pars,
-				  nbcs, B, gamma, ls);
+  				  x0, x1,
+  				  testfun, pars,
+  				  nbcs, B, gamma, ls);
   if (status)
     {
       fprintf(stderr, "Linear ODE solver failed.\n");
@@ -161,15 +161,15 @@ main()
 
       if (i % 20 == 0)
 	{
-	  printf("#%25s %25s %25s %25s %25s %25s %25s\n"
+	  printf("#%21s %21s %21s %21s %21s %21s %21s\n"
 		 , "x"
 		 , "y(x) (numeric)", "y'(x) (numeric)"
 		 , "y(x) (analytic)", "y'(x) (analytic)"
 		 , "y(x) logerror", "y'(x) logerror"
 		 );
 	}
-      printf(" %25.15lf %25.15lf %25.15lf %25.15lf %25.15lf"
-	     " %25.15lf %25.15lf\n"
+      printf(" %21.15lf %21.15lf %21.15lf %21.15lf %21.15lf"
+	     " %21.15lf %21.15lf\n"
 	     , x
 	     , yn, dyn
 	     , ya, dya

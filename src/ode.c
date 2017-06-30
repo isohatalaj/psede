@@ -1,14 +1,20 @@
 
 #include <stdlib.h>
-#include <lapacke.h>
 
 #include "psede_ode.h"
+
+extern void
+dgetrf_(int*, int*, double*, int*, int*, int*);
+
+extern void
+dgetrs_(char*, int*, int*, double*, int*, int*, double*, int*, int*);
+
 
 static inline int
 get_work_size(int size, int dim)
 {
   int cap = size*dim;
-  return cap*cap + 2*dim + dim;
+  return cap*cap + 2*dim*dim + dim;
 }
 
 static inline int
@@ -214,16 +220,16 @@ psede_ode_linear_solve(psede_ode_t *self,
 
   int info;
   
-  info = LAPACKE_dgetrf(LAPACK_ROW_MAJOR, 
-			nk, nk, M, nk, self->iwork);
+  dgetrf_(&nk, &nk, M, &nk, self->iwork, &info);
   if (info)
     {
       fprintf(stderr, "# error: dgetrf yielded bad info %d\n", info);
       return info;
     }
-  
-  info = LAPACKE_dgetrs(LAPACK_ROW_MAJOR, 'N', 
-			nk, 1, M, nk, self->iwork, self->y, 1);
+
+  int one = 1;
+
+  dgetrs_("T", &nk, &one, M, &nk, self->iwork, self->y, &nk, &info);
   if (info)
     {
       fprintf(stderr, "# error: dgetrs yielded bad info %d\n", info);
