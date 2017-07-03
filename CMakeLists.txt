@@ -4,7 +4,7 @@ project(psede)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
 find_package(fftw3)
-find_package(lapack)
+find_package(LAPACK)
 
 if (UNIX)
   find_library(MATH_LIBRARY m)
