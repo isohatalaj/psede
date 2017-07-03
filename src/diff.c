@@ -2,8 +2,8 @@
 #include "psede_diff.h"
 
 void
-psede_diff_mode_apply(double *x, int n, int stride, 
-		      int howmany, int dist)
+psede_Tx_diff_mode_apply(double *x, int n, int stride, 
+			 int howmany, int dist)
 {
   int i, k;
   double xi, xii;
@@ -31,21 +31,48 @@ psede_diff_mode_apply(double *x, int n, int stride,
 }
 
 int
-psede_diff_point_apply(double *x, int size, int stride,
-		       int howmany, int dist, psede_fct_t *fct)
+psede_Tx_diff_point_apply(double *x, int size, int stride,
+			  int howmany, int dist, psede_fct_t *fct)
 {
   int status;
 
-  status = psede_fct_apply(fct, x, size, stride, howmany, dist);
+  status = psede_Tx_fct_apply(fct, x, size, stride, howmany, dist);
   if (status) return status;
 
-  psede_diff_mode_apply(x, size, stride, howmany, dist);
+  psede_Tx_diff_mode_apply(x, size, stride, howmany, dist);
 
-  status = psede_fct_apply_inv(fct, x, size, stride, howmany, dist);
+  status = psede_Tx_fct_apply_inv(fct, x, size, stride, howmany, dist);
   if (status) return status;
 
   return 0;
 }
+
+
+int
+psede_Tx_diff_point_apply_multi_0(double *x, int diff_dim,
+				  int dims, const int *sizes, psede_fct_t *fct)
+{
+  int status;
+  int n_below = 1, n_above = 1;
+
+  int i;
+  for (i = 0; i < dims; ++i)
+    {
+      if (i < diff_dim) n_above *= sizes[i];
+      else if (i > diff_dim) n_below *= sizes[i];
+    }
+
+  for (i = 0; i < n_above; ++i)
+    {
+      status = psede_Tx_diff_point_apply(x + i*sizes[diff_dim]*n_below,
+					 sizes[diff_dim], n_below, n_below, 1, fct);
+      if (status) return status;
+    }
+  
+
+  return status;
+}
+
 
 static void
 id_matrix(double *id, int size, int stride, int howmany, int dist)
@@ -75,23 +102,23 @@ id_matrix(double *id, int size, int stride, int howmany, int dist)
  * O(n^2*log(n)) which (I think) is as good as it is going to get.
  */
 void
-psede_diff_mode_matrix(double *diff_mode, int size, int stride,
-		       int howmany, int dist)
+psede_Tx_diff_mode_matrix(double *diff_mode, int size, int stride,
+			  int howmany, int dist)
 {
   id_matrix(diff_mode, size, stride, howmany, dist);
-  psede_diff_mode_apply(diff_mode, size, dist, howmany, stride);
+  psede_Tx_diff_mode_apply(diff_mode, size, dist, howmany, stride);
 }
 
 int
-psede_diff_point_matrix(double *diff_point, int size, int stride,
-			int howmany, int dist,
-			psede_fct_t *fct)
+psede_Tx_diff_point_matrix(double *diff_point, int size, int stride,
+			   int howmany, int dist,
+			   psede_fct_t *fct)
 {
   int status;
   id_matrix(diff_point, size, stride, howmany, dist);
-  status = psede_diff_point_apply(diff_point, size, dist, 
-				  howmany, stride,
-				  fct);
+  status = psede_Tx_diff_point_apply(diff_point, size, dist, 
+				     howmany, stride,
+				     fct);
 
   return status;
 }

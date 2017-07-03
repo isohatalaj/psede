@@ -50,9 +50,9 @@ psede_fct_free_array(double *array);
  * point values to mode coefficients. Return zero for success.
  */
 int
-psede_fct_apply(psede_fct_t *self,
-		double *x, int size, int stride,
-		int howmany, int dist);
+psede_Tx_fct_apply(psede_fct_t *self,
+		   double *x, int size, int stride,
+		   int howmany, int dist);
 
 /**
  * Apply an Inverse Fast Chebyshev Transform to a vector or vectors;
@@ -60,8 +60,8 @@ psede_fct_apply(psede_fct_t *self,
  * success.
  */
 int
-psede_fct_apply_inv(psede_fct_t *self,
-		    double *x, int size, int stride,
-		    int howmany, int dist);
+psede_Tx_fct_apply_inv(psede_fct_t *self,
+		       double *x, int size, int stride,
+		       int howmany, int dist);
 
 #endif /* PSEDE_FCT_H */

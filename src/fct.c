@@ -90,12 +90,12 @@ psede_fct_free_array(double *array)
 
 
 int
-psede_fct_apply(psede_fct_t *self, 
-		double *x,
-		int n,
-		int stride,
-		int howmany,
-		int dist)
+psede_Tx_fct_apply(psede_fct_t *self, 
+		   double *x,
+		   int n,
+		   int stride,
+		   int howmany,
+		   int dist)
 {
   int status;
 
@@ -123,10 +123,10 @@ psede_fct_apply(psede_fct_t *self,
 }
 
 int
-psede_fct_apply_inv(psede_fct_t *self, 
-		    double *x, 
-		    int size, int stride,
-		    int howmany, int dist)
+psede_Tx_fct_apply_inv(psede_fct_t *self, 
+		       double *x, 
+		       int size, int stride,
+		       int howmany, int dist)
 {
   int status;
 

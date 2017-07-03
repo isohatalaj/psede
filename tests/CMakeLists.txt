@@ -5,3 +5,6 @@ link_directories(${PROJECT_BINARY_DIR}/src)
 add_executable(lintest lintest.c)
 target_link_libraries(lintest psede ${MATH_LIBRARY} ${fftw3_LIBRARIES} ${LAPACK_LIBRARIES})
 
+add_executable(difftest difftest.c)
+target_link_libraries(difftest psede ${MATH_LIBRARY} ${fftw3_LIBRARIES} ${LAPACK_LIBRARIES})
+

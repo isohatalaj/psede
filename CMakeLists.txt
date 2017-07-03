@@ -10,6 +10,10 @@ if (UNIX)
   find_library(MATH_LIBRARY m)
 endif (UNIX)
 
+if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror")
+endif()
+
 add_subdirectory(src)
 add_subdirectory(tests)
 

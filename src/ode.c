@@ -77,10 +77,10 @@ psede_ode_alloc(int size, int dim)
   self->fct = psede_fct_alloc();
   if (self->fct == NULL) goto fail;
 
-  psede_nodes(self->x, size, 1);
+  psede_Tx_nodes(self->x, size, 1, 1, size);
 
-  status = psede_diff_point_matrix(self->D, size, 1, size, size,
-				   self->fct);
+  status = psede_Tx_diff_point_matrix(self->D, size, 1, size, size,
+				      self->fct);
   if (status) goto fail;
 
   return self;
