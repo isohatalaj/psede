@@ -1,3 +1,13 @@
+/* Solves the Kolmogorov Forward Equation corresponding to an (almost)
+ * arbitrary 2-dimensional diffusion process. Almost, because for some
+ * more or less pathological the solver will fail; examples of such
+ * cases typically include degenerate diffusions. 
+ *
+ * Domain of the problem is assumed to be [-1,1]*[-1,1], with
+ * reflecting boundary conditions. Drift and diffusion
+ * coefficients are evaluatated in the function `driftdiff`.
+ *
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -7,22 +17,36 @@
 
 #include "psede.h"
 
-
+/* Evaluate the drift and diffusion coefficients
+ * of the process of interest. We assume the form:
+ *
+ *   dx = mu[0]*dt + sigma[0]*dz1 + sigma[1]*dz2,
+ *   dy = mu[1]*dt + sigma[2]*dz1 + sigma[3]*dz2,
+ *
+ * where dz1 and dz2 are independent Wiener process
+ * increments. 
+ */
 void
 driftdiff(const double r[2], void *params,
 	  double mu_out[2], double sigma_out[2*2])
 {
   const double sigma = 1.0;
-  
-  mu_out[0] = -r[0];
-  mu_out[1] = r[1];
 
-  sigma_out[0] = sigma; sigma_out[1] = 0.0;
-  sigma_out[2] = sigma; sigma_out[3] = sigma;
+  /* drift vector */
+  mu_out[0] = -r[1];
+  mu_out[1] = r[0];
+
+  /* x-component diffusion */
+  sigma_out[0] = sigma*(1.0 + 0.25*r[0]*r[0]);
+  sigma_out[1] = 0.0;
+
+  /* y-component diffusion */
+  sigma_out[2] = 0.0;
+  sigma_out[3] = sigma*(1.0 + 0.25*r[1]*r[1]);
 }
 
 
-
+/* Convenience wrappers */
 double mu_x(const double r[2], void *params)
 {
   double mu_out[2], sigma_out[2*2];
@@ -75,7 +99,7 @@ main()
   int status = 0;
 
   const int dim = 2;
-  const int n[2] = {32, 32};
+  const int n[2] = {24, 24};
   const int m = n[0]*n[1];
   const int m2 = m*m;
   double *nodes[2] = {NULL, NULL};
@@ -90,6 +114,7 @@ main()
   double *Jx_sol = NULL, *Jy_sol = NULL;
 
   void *params = NULL;
+  psede_linsolve_work_t *work = NULL;
 
   /* ******************************************************************************** */
   /* INITIALIZATION */
@@ -107,8 +132,8 @@ main()
 
   LOp = psede_fct_alloc_array(m2);    /* Linear operator corresponding to the KFE and boundary conditions */
   Tmp = psede_fct_alloc_array(m2);    /* Work memory for temporary objects */
-  JxOp  = psede_fct_alloc_array(m2);  /* Prob. current operator, x-direction */
-  JyOp  = psede_fct_alloc_array(m2);  /* Prob. current operator, y-direction */
+  JxOp = psede_fct_alloc_array(m2);  /* Prob. current operator, x-direction */
+  JyOp = psede_fct_alloc_array(m2);  /* Prob. current operator, y-direction */
 
   /* gamma will be the rhs of the linear equation determining the
      solution, LOp f == gamma. It's mostly zero, except for one
@@ -121,6 +146,14 @@ main()
   if (LOp == NULL || Tmp == NULL ||
       JxOp  == NULL || JyOp  == NULL || gamma == NULL || resid == NULL)
     { printf("# Out of memory allocating main matrices.\n"); status = 1; goto exit; }
+
+  work = psede_linsolve_work_alloc(m);
+  if (work == NULL)
+    {
+      printf("# Out of memory allocating solver workspace.\n");
+      status = 1;
+      goto exit;
+    }
 
   /* ******************************************************************************** */
   /* PROBLEM SETUP */
@@ -158,7 +191,6 @@ main()
   psede_Tx_diff_point_matrix_multi_0(Tmp, VAR_Y, dim, n, KEEP_INPUT, fct); /* Tmp <- Dy Tmp */
 
   psede_daxpy_0(m2, 1.0, Tmp, LOp); /* LOp <- LOp + Tmp */
-
 
 
   /* Enforce boundary conditions: No current shall flow perpendicular to boundaries of [-1,1]^2 */
@@ -205,6 +237,9 @@ main()
       for (l = 0; l < m; ++l) LOp[l + m*k] = JyOp[l + m*k];      
     }
 
+  /* Corners are corner cases. We probability currents to point
+   * inwards towards the center of the solution rectangle, so as to
+   * avoid having outflow currents. */
   i = 0;
   j = 0;
   k = j + n[1]*i;
@@ -252,14 +287,6 @@ main()
   memcpy(Tmp, LOp, m2*sizeof(double));
   
   /* We can now solve the equation LOp.f = gamma. */
-
-  psede_linsolve_work_t *work = psede_linsolve_work_alloc(m);
-  if (work == NULL)
-    {
-      printf("# Out of memory allocating solver workspace.\n");
-      status = 1;
-      goto exit;
-    }
 
   status = psede_linsolve_solve_0(m, LOp, gamma, work);
   if (status) { printf("# Linsolve failed.\n"); goto exit; }
@@ -326,8 +353,9 @@ main()
       prev_if = integ_y;
     }
 
+  printf("\n");
   printf("# Normalisation = %lf\n", integ_x);
-  printf("# |resid|       = %lf\n", resid_max);
+  printf("# log10 |resid| = %lf\n", resid_max);
 
   /* ******************************************************************************** */
   /* CLEANUP AND EXIT */
@@ -335,6 +363,8 @@ main()
  exit:
 
   for (i = 0; i < dim; ++i) if (nodes[i]) psede_fct_free_array(nodes[i]);
+
+  if (work) psede_linsolve_work_free(work);
 
   if (fct) psede_fct_free(fct);
 
@@ -347,5 +377,3 @@ main()
   
   if (status) printf("# Test failed.\n");
 }
-
-
