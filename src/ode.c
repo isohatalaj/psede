@@ -3,13 +3,6 @@
 
 #include "psede_ode.h"
 
-extern void
-dgetrf_(int*, int*, double*, int*, int*, int*);
-
-extern void
-dgetrs_(char*, int*, int*, double*, int*, int*, double*, int*, int*);
-
-
 static inline int
 get_work_size(int size, int dim)
 {
@@ -36,9 +29,9 @@ zero_self(psede_ode_t *self)
   self->fct = NULL;
   
   self->work_size = 0;
-  self->iwork_size = 0;
   self->work = NULL;
-  self->iwork = NULL;
+
+  self->linsolve_work = NULL;
 }
 
 psede_ode_t*
@@ -70,16 +63,15 @@ psede_ode_alloc(int size, int dim)
   self->work = psede_fct_alloc_array(self->work_size);
   if (self->work == NULL) goto fail;
 
-  self->iwork_size = get_iwork_size(size, dim);
-  self->iwork = malloc(self->iwork_size*sizeof(*self->iwork));
-  if (self->iwork == NULL) goto fail;
+  self->linsolve_work = psede_linsolve_work_alloc(get_iwork_size(size, dim));
+  if (self->linsolve_work == NULL) goto fail;
 
   self->fct = psede_fct_alloc();
   if (self->fct == NULL) goto fail;
 
   psede_Tx_nodes(self->x, size, 1, 1, size);
 
-  status = psede_Tx_diff_point_matrix(self->D, size, 1, size, size,
+  status = psede_Tx_diff_point_matrix(self->D, size, 1, size, size, 1,
 				      self->fct);
   if (status) goto fail;
 
@@ -99,7 +91,7 @@ psede_ode_free(psede_ode_t *self)
   if (self->D) psede_fct_free_array(self->D);
   if (self->fct) psede_fct_free(self->fct);
   if (self->work) psede_fct_free_array(self->work);
-  if (self->iwork) free(self->iwork);
+  if (self->linsolve_work) psede_linsolve_work_free(self->linsolve_work);
 
   free(self);
 }
@@ -218,23 +210,9 @@ psede_ode_linear_solve(psede_ode_t *self,
       self->y[l] = gamma[j];
     }
 
-  int info;
-  
-  dgetrf_(&nk, &nk, M, &nk, self->iwork, &info);
-  if (info)
-    {
-      fprintf(stderr, "# error: dgetrf yielded bad info %d\n", info);
-      return info;
-    }
-
-  int one = 1;
-
-  dgetrs_("T", &nk, &one, M, &nk, self->iwork, self->y, &nk, &info);
-  if (info)
-    {
-      fprintf(stderr, "# error: dgetrs yielded bad info %d\n", info);
-      return info;
-    }
+  status = psede_linsolve_solve_0(nk, M, self->y,
+				  self->linsolve_work);
+  if (status) return status;
 
   return 0;
 }

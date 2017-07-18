@@ -69,3 +69,25 @@ psede_Tx_nodes_multi_0(double *x, int dims, const int *n)
 }
 
 
+void
+psede_identity(double *id, int size, int stride, int howmany, int dist)
+{
+  int i, j;
+  
+  for (i = 0; i < size; ++i)
+    {
+      for (j = 0; j < i; ++j)
+	{
+	  id[j*dist + i*stride] = 0.0;
+	}
+
+      id[j*dist + i*stride] = 1.0;
+
+      for (j = i + 1; j < size; ++j)
+	{
+	  id[j*dist + i*stride] = 0.0;
+	}
+    }
+}
+
+

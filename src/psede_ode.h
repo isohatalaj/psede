@@ -25,9 +25,8 @@ typedef struct {
   psede_fct_t *fct;
 
   int work_size;
-  int iwork_size;
   double *work;
-  int *iwork;
+  psede_linsolve_work_t *linsolve_work;
 } psede_ode_t;
 
 /**
