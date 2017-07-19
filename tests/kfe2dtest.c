@@ -89,6 +89,8 @@ int min(int i, int j) { return i < j ? i : j; }
 /* For clarity: */
 #define KEEP_INPUT 0
 #define INPUT_TO_IDENTITY 1
+#define COLUMNS 0
+#define ROWS 1
 #define VAR_X 0 
 #define VAR_Y 1
 
@@ -164,32 +166,38 @@ main()
   psede_function_multiply_multi_0(JxOp, mu_x, params, nodes, dim, n, INPUT_TO_IDENTITY);  /* JxOp <- mu_x */
 
   psede_function_multiply_multi_0(Tmp, Diffs_x, params, nodes, dim, n, INPUT_TO_IDENTITY); /* Tmp <- Diffs_x */
-  psede_Tx_diff_point_matrix_multi_0(Tmp, VAR_X, dim, n, KEEP_INPUT, fct); /* Tmp <- Dx Tmp */
+  psede_apply_multi_matrix_0(Tmp, dim, n, COLUMNS, KEEP_INPUT,
+			     (psede_transform_t*) psede_Tx_diff_point_apply, VAR_X, fct); /* Tmp <- Dx Tmp */
   psede_daxpy_0(m2, -0.5, Tmp, JxOp); /* JxOp <- -0.5*Tmp + JxOp */
 
   psede_function_multiply_multi_0(Tmp, Corrs_xy, params, nodes, dim, n, INPUT_TO_IDENTITY);
-  psede_Tx_diff_point_matrix_multi_0(Tmp, VAR_Y, dim, n, KEEP_INPUT, fct);
+  psede_apply_multi_matrix_0(Tmp, dim, n, COLUMNS, KEEP_INPUT,
+			     (psede_transform_t*) psede_Tx_diff_point_apply, VAR_Y, fct);
   psede_daxpy_0(m2, -0.5, Tmp, JxOp);
 
   /* JyOp f := mu_y f - D_x (1/2 C f) - D_y (1/2  f) */
   psede_function_multiply_multi_0(JyOp, mu_y, params, nodes, dim, n, INPUT_TO_IDENTITY);
 
   psede_function_multiply_multi_0(Tmp, Diffs_y, params, nodes, dim, n, INPUT_TO_IDENTITY);
-  psede_Tx_diff_point_matrix_multi_0(Tmp, VAR_Y, dim, n, KEEP_INPUT, fct);
+  psede_apply_multi_matrix_0(Tmp, dim, n, COLUMNS, KEEP_INPUT,
+			     (psede_transform_t*) psede_Tx_diff_point_apply, VAR_Y, fct);
   psede_daxpy_0(m2, -0.5, Tmp, JyOp);
 
   psede_function_multiply_multi_0(Tmp, Corrs_xy, params, nodes, dim, n, INPUT_TO_IDENTITY);
-  psede_Tx_diff_point_matrix_multi_0(Tmp, VAR_X, dim, n, KEEP_INPUT, fct);
+  psede_apply_multi_matrix_0(Tmp, dim, n, COLUMNS, KEEP_INPUT,
+			     (psede_transform_t*) psede_Tx_diff_point_apply, VAR_X, fct);
   psede_daxpy_0(m2, -0.5, Tmp, JyOp);
 
   /* Construct Kolmogorov Forward Equation operator LOp */
   /* LOp := Dx JxOp + Dy JyOp */
   memcpy(LOp, JxOp, m2*sizeof(double)); /* LOp <- JxOp */
   memcpy(Tmp, JyOp, m2*sizeof(double)); /* Tmp <- JyOp */
-  
-  psede_Tx_diff_point_matrix_multi_0(LOp, VAR_X, dim, n, KEEP_INPUT, fct); /* LOp <- Dx LOp */ 
-  psede_Tx_diff_point_matrix_multi_0(Tmp, VAR_Y, dim, n, KEEP_INPUT, fct); /* Tmp <- Dy Tmp */
 
+  psede_apply_multi_matrix_0(LOp, dim, n, COLUMNS, KEEP_INPUT,
+			     (psede_transform_t*) psede_Tx_diff_point_apply, VAR_X, fct); /* LOp <- Dx LOp */ 
+  psede_apply_multi_matrix_0(Tmp, dim, n, COLUMNS, KEEP_INPUT,
+			     (psede_transform_t*) psede_Tx_diff_point_apply, VAR_Y, fct); /* Tmp <- Dy Tmp */
+  
   psede_daxpy_0(m2, 1.0, Tmp, LOp); /* LOp <- LOp + Tmp */
 
 

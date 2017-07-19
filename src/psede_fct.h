@@ -4,6 +4,10 @@
 
 #include <fftw3.h>
 
+/* Transform function signatures should conform to psede_transform_t,
+ * for easy extension to multidimensional case.
+ */
+
 /**
  * Fast Chebyshev transform workspace
  */
@@ -50,9 +54,8 @@ psede_fct_free_array(double *array);
  * point values to mode coefficients. Return zero for success.
  */
 int
-psede_Tx_fct_apply(psede_fct_t *self,
-		   double *x, int size, int stride,
-		   int howmany, int dist);
+psede_Tx_fct_apply(double *x, int size, int stride,
+		   int howmany, int dist, psede_fct_t *self);
 
 /**
  * Apply an Inverse Fast Chebyshev Transform to a vector or vectors;
@@ -60,8 +63,7 @@ psede_Tx_fct_apply(psede_fct_t *self,
  * success.
  */
 int
-psede_Tx_fct_apply_inv(psede_fct_t *self,
-		       double *x, int size, int stride,
-		       int howmany, int dist);
+psede_Tx_fct_apply_inv(double *x, int size, int stride,
+		       int howmany, int dist, psede_fct_t *self);
 
 #endif /* PSEDE_FCT_H */

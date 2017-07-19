@@ -6,6 +6,7 @@
 #include "psede_func.h"
 #include "psede_diff.h"
 #include "psede_util.h"
+#include "psede_multi.h"
 
 /**
  * Compute a 1D extrema grid (Chebyshev-Gauss-Lobatto

@@ -7,9 +7,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <time.h>
 
 #include "psede.h"
-#include "psede_ode.h"
+
 
 void
 fun_1d(double x, double *y, double *dy)
@@ -44,7 +45,7 @@ fun_3d(double x[3], double *fx, double dfx[3])
 }
 
 int
-test_3d(int n[3], int out, double *max_err)
+test_3d(int n[3], int out, double *max_err, double *elapsed)
 {
   const int dim = 3;
   const int m = n[0]*n[1]*n[2];
@@ -99,10 +100,15 @@ test_3d(int n[3], int out, double *max_err)
   	}
     }
 
+  clock_t start = clock();
+
   int j;
   for (j = 0; j < dim; ++j)
     {
-      status = psede_Tx_diff_point_apply_multi_0(dy_numer + j*m, j, dim, n, fct);
+      status = psede_apply_multi(dy_numer + j*m, dim, n,
+				 (psede_transform_t *) psede_Tx_diff_point_apply,
+				 j,
+				 (void *) fct);
       if (status)
 	{
 	  printf("# Failed differentiating\n");
@@ -110,6 +116,11 @@ test_3d(int n[3], int out, double *max_err)
 	}
     }
 
+  int n_fftelems = n[0]*n[1] + n[0]*n[2] + n[1]*n[2];
+
+  clock_t end = clock();
+  *elapsed = 1000.0 * (end - start) / ((double) CLOCKS_PER_SEC);
+  *elapsed /= n_fftelems;
 
   int first = 1;
 
@@ -146,7 +157,7 @@ test_3d(int n[3], int out, double *max_err)
 
 
 int
-test_1d(int n, int out, double *max_err)
+test_1d(int n, int out, double *max_err, double *elapsed)
 {
   int status = 0;
   int i;
@@ -186,7 +197,11 @@ test_1d(int n, int out, double *max_err)
       dy_numer[i] = y[i];
     }
 
+  clock_t start = clock();
   status = psede_Tx_diff_point_apply(dy_numer, n, 1, 1, n, fct);
+  clock_t end = clock();
+  *elapsed = 1000.0 * (end - start) / ((double) CLOCKS_PER_SEC);
+  *elapsed /= n;
 
   if (status) 
     {
@@ -230,28 +245,33 @@ main()
 
   printf("# Testing 1D case...\n");
 
-  printf("#%5s %25s", "n", "log10 |err|\n");
-  for (n = 4; n <= 64; n += 2)
+  printf("#%10s %25s %25s\n", "n", "log10 |err|", "time [ms]");
+  for (n = 16; n <= 1 << 20; n = 3*n/2)
     {
-      double max_err;
-      status = test_1d(n, 0, &max_err);
-      printf(" %5d %25.15lf\n", n, log10(max_err));
+      double max_err, elapsed;
+
+      status = test_1d(n, 0, &max_err, &elapsed);
+      
+      printf(" %10d %25.15lf %25.15lf\n", n, log10(max_err), elapsed);
       if (status) goto exit;
     }
 
   printf("\n\n# Testing 3D case...\n");
 
-  printf("#%5s %25s", "n", "log10 |err|\n");
-  for (n = 8; n <= 64; n += 2)
+
+  printf("#%5s %25s %25s\n", "n", "log10 |err|", "time [ms]");
+  for (n = 8; n <= 128; n += 2)
     {
-      double max_err;
+      double max_err, elapsed;
       int nn[3];
       nn[0] = n;
       nn[1] = n;
       nn[2] = n;
+      /* int m = nn[0]*nn[1]*nn[2]; */
+
+      status = test_3d(nn, 0, &max_err, &elapsed);
       
-      status = test_3d(nn, 0, &max_err);
-      printf(" %5d %25.15lf\n", n, log10(max_err));
+      printf(" %5d %25.15lf %25.15lf\n", n, log10(max_err), elapsed);
       if (status) goto exit;
     }
   

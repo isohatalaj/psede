@@ -71,8 +71,9 @@ psede_ode_alloc(int size, int dim)
 
   psede_Tx_nodes(self->x, size, 1, 1, size);
 
-  status = psede_Tx_diff_point_matrix(self->D, size, 1, size, size, 1,
-				      self->fct);
+  status = psede_apply_matrix_0(self->D, size, 0, 1,
+				(psede_transform_t*) psede_Tx_diff_point_apply,
+				(void*) self->fct);
   if (status) goto fail;
 
   return self;
