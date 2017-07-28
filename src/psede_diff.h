@@ -2,9 +2,9 @@
 #ifndef PSEDE_DIFF_H
 #define PSEDE_DIFF_H
 
-#include "psede.h"
+#include "psede_fct.h"
 
-/* Transform function signatures should conform to psede_transform_t,
+/* Transform function signatures should conform to psede_transf_call_t,
  * inorder for them to be easily generalized to applying to
  * multidimensional grids. */
 
@@ -44,28 +44,22 @@ int
 psede_Tx_integ_point_apply(double *x, int size, int stride,
 			   int howmany, int dist, psede_fct_t *fct);
 
-
-/**
- * Apply a multidimensional differentiation to a matrix (`init == 0`),
- * or generate the a differentiation matrix (`init != 0`).
+/* ******************************************************************************** */
+/* Transformer API functions. The above routines can be freely used to
+ * do low-level transform operations, however, using them via
+ * transf objects can greatly simplify code that requires
+ * composition and linear combination of multiple transformations.
  */
-/* int */
-/* psede_Tx_diff_point_matrix_multi_0(double *diff_point, */
-/* 				   int diff_dim, */
-/* 				   int dims, const int *sizes, */
-/* 				   int init, */
-/* 				   psede_fct_t *fct); */
 
 /**
- * Apply a multidimensional integration to a matrix (`init == 0`), or
- * generate the a differentiation matrix (`init != 0`).
+ * Initialize a given transform to be differentiation operator for
+ * Chebyshev extrema grid (point space). The parameter `order`
+ * specifies the order of the differentiation; negative orders signify
+ * integration. Implicitly uses the standard FCT backend to transfer
+ * between mode and point representations. `params` is ignored.
  */
 int
-psede_Tx_integ_point_matrix_multi_0(double *integ_point,
-				    int integ_dim,
-				    int dims, const int *sizes,
-				    int init,
-				    psede_fct_t *fct);
+psede_init_Tx_diff(psede_transf_t *transf, int order, void *params);
 
 
 #endif /* PSEDE_DIFF_H */

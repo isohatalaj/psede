@@ -2,6 +2,23 @@
 #ifndef PSEDE_UTIL_H
 #define PSEDE_UTIL_H
 
+#include <stdio.h>
+
+#define Psede_debug(str, ...) do { fprintf(stderr, "# debug %s, %s (%d): " str, __FUNCTION__, __FILE__, __LINE__, ##__VA_ARGS__); fflush(stderr); } while(0)
+
+/**
+ * Enum used when passing pointers to other objects. The value
+ * `PSEDE_PASS_OWNERSHIP` indicates that the responsibility for
+ * finalising a pointer argument is transferred to the routine being
+ * called. The opposite case where the caller retains its
+ * responsibility for the pointer is flagged by
+ * `PSEDE_RETAIN_OWNERSHIP`.
+ */
+typedef enum {
+  PSEDE_PASS_OWNERSHIP,
+  PSEDE_RETAIN_OWNERSHIP
+} psede_ownership_t;
+
 typedef struct {
   int iwork_size;
   int *iwork;
@@ -15,6 +32,36 @@ psede_linsolve_work_alloc(int n);
 
 void
 psede_linsolve_work_free(psede_linsolve_work_t *work);
+
+typedef void (psede_finalize_t)(void *);
+
+
+/**
+ * Linked list for storing pointers that need to be finalized.  Used
+ * by objects that allocate dynamically varying numbers of other
+ * objects.
+ */
+/* typedef struct psede_cleanup_list_t; */
+/* typedef struct { */
+/*   psede_finalize_t *finalize; */
+/*   void *params; */
+/*   psede_cleanup_list_t *next; */
+/* } psede_cleanup_list_t; */
+
+/* int */
+/* psede_cleanup_list_push(psede_cleanup_list_t **list, */
+/* 			psede_finalize_t *finalize, void *params); */
+
+/* void */
+/* psede_cleanup_list_finalize(psede_cleanup_list_t *list); */
+
+
+/**
+ * Copy multiple strided arrays.
+ */
+void
+psede_copy(double *dest, const double *source,
+	   int n, int stride, int howmany, int dist);
 
 /**
  * In-place transpose for `n`-by-`n` matrix.

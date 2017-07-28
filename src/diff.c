@@ -1,4 +1,6 @@
 
+#include <stdlib.h>
+
 #include "psede_diff.h"
 
 int
@@ -107,132 +109,123 @@ psede_Tx_integ_point_apply(double *x, int size, int stride,
   return 0;
 }
 
-/* int */
-/* psede_Tx_diff_point_apply_multi_0(double *x, int diff_dim, */
-/* 				  int dims, const int *sizes, psede_fct_t *fct) */
-/* { */
-/*   int status; */
-/*   int n_below = 1, n_above = 1; */
+/* ******************************************************************************** */
 
-/*   int i; */
-/*   for (i = 0; i < dims; ++i) */
-/*     { */
-/*       if (i < diff_dim) n_above *= sizes[i]; */
-/*       else if (i > diff_dim) n_below *= sizes[i]; */
-/*     } */
+/**
+ * Transform parameters for one-dimensional differentiation, Chebyshev
+ * extrema in point space.
+ */
+typedef struct {
+  int order;
+  psede_transf_t fct;
+  psede_transf_t ifct;
+} psede_Tx_diff_params_t;
 
-/*   if (n_below == 1) */
-/*     { */
-/*       for (i = 0; i < n_below; ++i) */
-/* 	{ */
-/* 	  status = psede_Tx_diff_point_apply(x + i, sizes[diff_dim], n_below, */
-/* 					     n_above, sizes[diff_dim]*n_below, fct); */
-/* 	  if (status) return status; */
-/* 	} */
-/*     } */
-/*   else */
-/*     { */
-/*       for (i = 0; i < n_above; ++i) */
-/*   	{ */
-/*   	  status = psede_Tx_diff_point_apply(x + i*sizes[diff_dim]*n_below, */
-/*   					     sizes[diff_dim], n_below, n_below, 1, fct); */
-/*   	  if (status) return status; */
-/*   	} */
-/*     } */
+psede_Tx_diff_params_t *
+psede_Tx_diff_params_alloc();
 
-/*   return status; */
-/* } */
+void
+psede_Tx_diff_params_free(psede_Tx_diff_params_t*);
 
 int
-psede_Tx_integ_point_apply_multi_0(double *x, int diff_dim,
-				   int dims, const int *sizes, psede_fct_t *fct)
+psede_Tx_diff_apply(double *target, int size, int stride,
+		    int howmany, int dist,
+		    psede_Tx_diff_params_t *params);
+
+
+
+psede_Tx_diff_params_t *
+psede_Tx_diff_params_alloc(int order)
 {
   int status;
-  int n_below = 1, n_above = 1;
+  psede_Tx_diff_params_t *params;
 
-  int i;
-  for (i = 0; i < dims; ++i)
+  params = malloc(sizeof(*params));
+  if (params == NULL) return NULL;
+  
+  status = psede_init_Tx_fct(&params->fct, NULL);
+  if (status) goto fail;
+
+  status = psede_init_Tx_ifct(&params->ifct, NULL);
+  if (status) goto fail;
+
+  params->order = order;
+
+  return params;
+
+ fail:
+  psede_Tx_diff_params_free(params);
+
+  return NULL;
+}
+
+void
+psede_Tx_diff_params_free(psede_Tx_diff_params_t *params)
+{
+  if (params)
     {
-      if (i < diff_dim) n_above *= sizes[i];
-      else if (i > diff_dim) n_below *= sizes[i];
+      psede_transf_destroy(&params->fct);
+      psede_transf_destroy(&params->ifct);
+
+      free(params);
     }
+}
 
-  if (n_below == 1)
+int
+psede_Tx_diff_apply(double *target, int size, int stride,
+		    int howmany, int dist,
+		    psede_Tx_diff_params_t *params)
+{
+  int status;
+  int i;
+  
+  if (params->order == 0) return 0;
+
+  status = psede_transf_apply(&params->fct,
+				   target, size,
+				   stride, howmany, dist);
+  if (status) return status;
+
+  if (params->order > 0)
     {
-      for (i = 0; i < n_below; ++i)
+      for (i = 0; i < params->order; ++i)
 	{
-	  status = psede_Tx_integ_point_apply(x + i, sizes[diff_dim], n_below,
-					      n_above, sizes[diff_dim]*n_below, fct);
+	  status = psede_Tx_diff_mode_apply(target, size,
+					    stride, howmany, dist,
+					    NULL);
 	  if (status) return status;
 	}
     }
   else
     {
-      for (i = 0; i < n_above; ++i)
-  	{
-  	  status = psede_Tx_integ_point_apply(x + i*sizes[diff_dim]*n_below,
-					      sizes[diff_dim], n_below, n_below, 1, fct);
-  	  if (status) return status;
-  	}
+      for (i = 0; i < -params->order; ++i)
+	{
+	  status = psede_Tx_integ_mode_apply(target, size,
+					     stride, howmany, dist,
+					     NULL);
+	  if (status) return status;
+	}
     }
 
-  return status;
+  status = psede_transf_apply(&params->ifct,
+				   target, size,
+				   stride, howmany, dist);
+  if (status) return status;
+
+  return 0;
 }
 
-/* int */
-/* psede_Tx_diff_point_matrix_multi_0(double *diff_point, */
-/* 				   int diff_dim, */
-/* 				   int dims, const int *sizes, */
-/* 				   int init, */
-/* 				   psede_fct_t *fct) */
-/* { */
-/*   int status; */
-/*   int i, m = 1; */
-/*   for (i = 0; i < dims; ++i) m *= sizes[i]; */
-
-/*   if (init) psede_identity(diff_point, m, 1, m, m); */
-
-/*   /\* TODO: Make these transpositions unnecessary *\/ */
-/*   psede_transp_0(m, diff_point); */
-  
-/*   for (i = 0; i < m; ++i) */
-/*     { */
-/*       status = psede_apply_multi(diff_point + i*m, dims, sizes, */
-/* 				 (psede_transform_t *) psede_Tx_diff_point_apply, */
-/* 				 diff_dim, */
-/* 				 (void *) fct); */
-/*       if (status) return status; */
-/*     } */
-
-/*   psede_transp_0(m, diff_point); */
-  
-/*   return 0; */
-/* } */
-
 int
-psede_Tx_integ_point_matrix_multi_0(double *diff_point,
-				    int diff_dim,
-				    int dims, const int *sizes,
-				    int init,
-				    psede_fct_t *fct)
+psede_init_Tx_diff(psede_transf_t *transf, int order, void *null)
 {
-  int status;
-  int i, m = 1;
-  for (i = 0; i < dims; ++i) m *= sizes[i];
+  psede_Tx_diff_params_t *params;
 
-  if (init) psede_identity(diff_point, m, 1, m, m);
+  params = psede_Tx_diff_params_alloc(order);
+  if (params == NULL) return 1;
 
-  /* TODO: Make these transpositions unnecessary */
-  psede_transp_0(m, diff_point);
-
-  for (i = 0; i < m; ++i)
-    {
-      status = psede_Tx_integ_point_apply_multi_0(diff_point + i*m,
-						  diff_dim, dims, sizes, fct);
-      if (status) return status;
-    }
-
-  psede_transp_0(m, diff_point);
+  transf->transform = (psede_transf_call_t*) psede_Tx_diff_apply;
+  transf->finalize = (psede_transf_finalize_t*) psede_Tx_diff_params_free;
+  transf->params = params;
 
   return 0;
 }

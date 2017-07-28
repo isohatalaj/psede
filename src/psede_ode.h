@@ -2,7 +2,8 @@
 #ifndef PSEDE_ODE_H
 #define PSEDE_ODE_H
 
-#include "psede.h"
+#include "psede_util.h"
+#include "psede_diff.h"
 
 /**
  * Linear ODE function type. 
@@ -28,6 +29,7 @@ typedef struct {
   double *work;
   psede_linsolve_work_t *linsolve_work;
 } psede_ode_t;
+
 
 /**
  * Allocate ODE solver object and initialize it for solving `dim`

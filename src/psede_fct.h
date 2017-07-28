@@ -2,11 +2,42 @@
 #ifndef PSEDE_FCT_H
 #define PSEDE_FCT_H
 
+#include "psede_multi.h"
+
 #include <fftw3.h>
 
-/* Transform function signatures should conform to psede_transform_t,
+/* Transform function signatures should conform to psede_transf_call_t,
  * for easy extension to multidimensional case.
  */
+
+/**
+ * Compute a 1D extrema grid (Chebyshev-Gauss-Lobatto
+ * nodes). Calculates `n` nodes with output in array `x` and
+ * sequential elements separated by `stride` elements.  Parameter
+ * `howmany` selects number of arrays to fill and `dist` selects the
+ * distance between such arrays. `params` is ignored.
+ */
+int
+psede_Tx_nodes(double *x, int n, int stride, int howmany, int dist,
+	       void *params);
+
+/**
+ * Same as `psede_Tx_nodes` but computes a single node array with unit
+ * stride.
+ */
+void
+psede_Tx_nodes_0(double *x, int n);
+
+/**
+ * Compute a multi-dimensinal extrema grid (Chebyshev-Gauss-Lobatto
+ * nodes). Number of dimensions is `dims`, with desired number of grid
+ * points for each dimension in `n`. The output array `x`, minimum
+ * size `dims*n[0]*n[1]*...*n[dims-1]`, will contain the grid points
+ * in dense "row-major" order, ie. the last dimension varies fastest
+ * in memory with no gaps between consequtive rows.
+ */
+void
+psede_Tx_nodes_multi_0(double *x, int dims, const int *n);
 
 /**
  * Fast Chebyshev transform workspace
@@ -40,6 +71,7 @@ psede_fct_free(psede_fct_t *self);
  * Arrays allocated via this function must be freed using
  * psede_fct_free_array.
  */
+
 double*
 psede_fct_alloc_array(int size);
 
@@ -65,5 +97,33 @@ psede_Tx_fct_apply(double *x, int size, int stride,
 int
 psede_Tx_fct_apply_inv(double *x, int size, int stride,
 		       int howmany, int dist, psede_fct_t *self);
+
+
+/* ******************************************************************************** */
+/* Transformer interface to FCTs. */
+
+/**
+ * Initialize a transf to the Chebyshev extrema nodes
+ * transform (i.e. the transform that sets an input array
+ * to the grid points). Parameter `params` is ignored.
+ */
+int
+psede_init_Tx_nodes(psede_transf_t *, void *params);
+
+
+/**
+ * Initialize a transf to the Chebyshev extrema points-to-modes
+ * transform. Parameter `params` is ignored.
+ */
+int
+psede_init_Tx_fct(psede_transf_t *, void *params);
+
+/**
+ * Initialize a transf to the Chebyshev extrama modes-to-points
+ * transform. Parameter `params` is ignored.
+ */
+int
+psede_init_Tx_ifct(psede_transf_t *, void *params);
+
 
 #endif /* PSEDE_FCT_H */

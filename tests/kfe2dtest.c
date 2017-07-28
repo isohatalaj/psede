@@ -95,6 +95,7 @@ int min(int i, int j) { return i < j ? i : j; }
 #define VAR_Y 1
 
 
+
 int
 main()
 {
@@ -161,31 +162,31 @@ main()
   /* PROBLEM SETUP */
 
   /* Construct probability current operators JxOp and JyOp */
-  /* JxOp f := mu_x f - D_x (1/2 D_x f) - D_y (1/2 C f) */
+  /* JxOp f := mu_x f - D_x (1/2 Var_x f) - D_y (1/2 Cov_xy f) */
   /* D_x = sigma_x1^2 + sigma_x2^2,  C = sigma_x1 sigma_y1 + sigma_x2 sigma_y2 */
   psede_function_multiply_multi_0(JxOp, mu_x, params, nodes, dim, n, INPUT_TO_IDENTITY);  /* JxOp <- mu_x */
 
   psede_function_multiply_multi_0(Tmp, Diffs_x, params, nodes, dim, n, INPUT_TO_IDENTITY); /* Tmp <- Diffs_x */
   psede_apply_multi_matrix_0(Tmp, dim, n, COLUMNS, KEEP_INPUT,
-			     (psede_transform_t*) psede_Tx_diff_point_apply, VAR_X, fct); /* Tmp <- Dx Tmp */
+			     (psede_transf_call_t*) psede_Tx_diff_point_apply, VAR_X, fct); /* Tmp <- Dx Tmp */
   psede_daxpy_0(m2, -0.5, Tmp, JxOp); /* JxOp <- -0.5*Tmp + JxOp */
 
   psede_function_multiply_multi_0(Tmp, Corrs_xy, params, nodes, dim, n, INPUT_TO_IDENTITY);
   psede_apply_multi_matrix_0(Tmp, dim, n, COLUMNS, KEEP_INPUT,
-			     (psede_transform_t*) psede_Tx_diff_point_apply, VAR_Y, fct);
+			     (psede_transf_call_t*) psede_Tx_diff_point_apply, VAR_Y, fct);
   psede_daxpy_0(m2, -0.5, Tmp, JxOp);
 
-  /* JyOp f := mu_y f - D_x (1/2 C f) - D_y (1/2  f) */
+  /* JyOp f := mu_y f - D_x (1/2 Cov_xy f) - D_y (1/2 Var_y f) */
   psede_function_multiply_multi_0(JyOp, mu_y, params, nodes, dim, n, INPUT_TO_IDENTITY);
 
   psede_function_multiply_multi_0(Tmp, Diffs_y, params, nodes, dim, n, INPUT_TO_IDENTITY);
   psede_apply_multi_matrix_0(Tmp, dim, n, COLUMNS, KEEP_INPUT,
-			     (psede_transform_t*) psede_Tx_diff_point_apply, VAR_Y, fct);
+			     (psede_transf_call_t*) psede_Tx_diff_point_apply, VAR_Y, fct);
   psede_daxpy_0(m2, -0.5, Tmp, JyOp);
 
   psede_function_multiply_multi_0(Tmp, Corrs_xy, params, nodes, dim, n, INPUT_TO_IDENTITY);
   psede_apply_multi_matrix_0(Tmp, dim, n, COLUMNS, KEEP_INPUT,
-			     (psede_transform_t*) psede_Tx_diff_point_apply, VAR_X, fct);
+			     (psede_transf_call_t*) psede_Tx_diff_point_apply, VAR_X, fct);
   psede_daxpy_0(m2, -0.5, Tmp, JyOp);
 
   /* Construct Kolmogorov Forward Equation operator LOp */
@@ -194,9 +195,9 @@ main()
   memcpy(Tmp, JyOp, m2*sizeof(double)); /* Tmp <- JyOp */
 
   psede_apply_multi_matrix_0(LOp, dim, n, COLUMNS, KEEP_INPUT,
-			     (psede_transform_t*) psede_Tx_diff_point_apply, VAR_X, fct); /* LOp <- Dx LOp */ 
+			     (psede_transf_call_t*) psede_Tx_diff_point_apply, VAR_X, fct); /* LOp <- Dx LOp */ 
   psede_apply_multi_matrix_0(Tmp, dim, n, COLUMNS, KEEP_INPUT,
-			     (psede_transform_t*) psede_Tx_diff_point_apply, VAR_Y, fct); /* Tmp <- Dy Tmp */
+			     (psede_transf_call_t*) psede_Tx_diff_point_apply, VAR_Y, fct); /* Tmp <- Dy Tmp */
   
   psede_daxpy_0(m2, 1.0, Tmp, LOp); /* LOp <- LOp + Tmp */
 
@@ -275,9 +276,11 @@ main()
   /* Construct integration operator into Tmp. TODO: Quite inefficient,
      as we do not need the full operator, just the last row would
      suffice.*/
-  psede_Tx_integ_point_matrix_multi_0(Tmp, VAR_X, dim, n, INPUT_TO_IDENTITY, fct); 
-  psede_Tx_integ_point_matrix_multi_0(Tmp, VAR_Y, dim, n, KEEP_INPUT, fct);
-
+  psede_apply_multi_matrix_0(Tmp, dim, n, COLUMNS, INPUT_TO_IDENTITY,
+			     (psede_transf_call_t*) psede_Tx_integ_point_apply, VAR_X, fct); 
+  psede_apply_multi_matrix_0(Tmp, dim, n, COLUMNS, KEEP_INPUT,
+			     (psede_transf_call_t*) psede_Tx_integ_point_apply, VAR_Y, fct); 
+  
   /* Now pick a row in LOp and overwrite it with the last row from Tmp */
   j = n[1]/4; i = n[0]/4;
   k = j + n[1]*i;

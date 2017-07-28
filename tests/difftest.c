@@ -106,7 +106,8 @@ test_3d(int n[3], int out, double *max_err, double *elapsed)
   for (j = 0; j < dim; ++j)
     {
       status = psede_apply_multi(dy_numer + j*m, dim, n,
-				 (psede_transform_t *) psede_Tx_diff_point_apply,
+				 1, 1, 0,
+				 (psede_transf_call_t *) psede_Tx_diff_point_apply,
 				 j,
 				 (void *) fct);
       if (status)

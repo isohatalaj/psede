@@ -73,6 +73,22 @@ psede_linsolve_work_free(psede_linsolve_work_t *work)
 }
 
 void
+psede_copy(double *dest, const double *source,
+	   int n, int stride, int howmany, int dist)
+{
+  int i, j;
+
+  for (i = 0; i < howmany; ++i)
+    {
+      for (j = 0; j < n; ++j)
+	{
+	  dest[j*stride + i*dist] = source[j*stride + i*dist];
+	}
+    }
+}
+
+
+void
 psede_transp_0(int n, double *m)
 {
   int i, j;
@@ -126,3 +142,30 @@ psede_daxpy_0(int n, double alpha, double *a, double *b)
   int one = 1;
   daxpy_(&n, &alpha, a, &one, b, &one);
 }
+
+/* int */
+/* psede_cleanup_list_push(psede_cleanup_list_t **list, */
+/* 			psede_finalize_t *finalize, void *params) */
+/* { */
+/*   psede_cleanup_list_t *next = *list; */
+
+/*   *list = malloc(sizeof(**list)); */
+/*   if (*list == NULL) return 1; */
+  
+/*   *list->finalize = finalize; */
+/*   *list->params = params; */
+/*   *list->next = next; */
+
+/*   return 0; */
+/* } */
+
+/* void */
+/* psede_cleanup_list_finalize(psede_cleanup_list_t *list) */
+/* { */
+/*   if (list == NULL) return; */
+/*   list->finalize(list->params); */
+/*   psede_cleanup_list_t *next = list->next; */
+/*   free(list); */
+
+/*   psede_cleanup_list_finalize(next); */
+/* } */

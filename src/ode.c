@@ -69,10 +69,10 @@ psede_ode_alloc(int size, int dim)
   self->fct = psede_fct_alloc();
   if (self->fct == NULL) goto fail;
 
-  psede_Tx_nodes(self->x, size, 1, 1, size);
+  psede_Tx_nodes(self->x, size, 1, 1, size, NULL);
 
   status = psede_apply_matrix_0(self->D, size, 0, 1,
-				(psede_transform_t*) psede_Tx_diff_point_apply,
+				(psede_transf_call_t*) psede_Tx_diff_point_apply,
 				(void*) self->fct);
   if (status) goto fail;
 

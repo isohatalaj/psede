@@ -1,7 +1,97 @@
 
+#include <math.h>
 #include <stdlib.h>
 
 #include "psede_fct.h"
+
+int
+psede_Tx_nodes(double *x, int n, int stride, int howmany, int dist, void *null)
+{
+  int i, j;
+  const double z = M_PI/(n-1);
+
+  for (i = 0; i < n; ++i)
+    {
+      x[i*stride] = cos(i*z);
+    }
+
+  for (j = 1; j < howmany; ++j)
+    {
+      for (i = 0; i < n; ++i)
+	{
+	  x[i*stride + j*dist] = x[i*stride];
+	}
+    }
+
+  return 0;
+}
+
+
+void
+psede_Tx_nodes_0(double *x, int n)
+{
+  psede_Tx_nodes(x, n, 1, 1, n, NULL);
+}
+
+
+void
+psede_Tx_nodes_multi_0(double *x, int dims, const int *n)
+{
+  int dim;
+  int stride = 1; /* stride in x,y,z,.. tuple units */
+
+  int m = 1; /* size of x in x,y,z,... tuples */
+  for (dim = 0; dim < dims; ++dim) m *= n[dim];
+
+  for (dim = dims - 1; dim >= 0; --dim)
+    {
+      /* Do one set of points... */
+      psede_Tx_nodes(x + dim, n[dim], dims*stride, 1, n[dim], NULL);
+
+      /* ..and then duplicate it for the rest of the array. */
+      int i, j = 0, k = 0;
+
+      for (i = 0; i < m; ++i)
+	{
+	  x[dims*i + dim] = x[dims*stride*k + dim];
+
+	  j++;
+	  if (j == stride)
+	    {
+	      j = 0;
+	      k++;
+	      if (k == n[dim])
+		{
+		  k = 0;
+		}
+	    }
+	}
+
+      stride *= n[dim];
+    }  
+}
+
+
+void
+psede_identity(double *id, int size, int stride, int howmany, int dist)
+{
+  int i, j;
+  
+  for (i = 0; i < size; ++i)
+    {
+      for (j = 0; j < i; ++j)
+	{
+	  id[j*dist + i*stride] = 0.0;
+	}
+
+      id[j*dist + i*stride] = 1.0;
+
+      for (j = i + 1; j < size; ++j)
+	{
+	  id[j*dist + i*stride] = 0.0;
+	}
+    }
+}
 
 static fftw_plan 
 make_plan(double *x, 
@@ -145,6 +235,50 @@ psede_Tx_fct_apply_inv(double *x,
     }
 
   fftw_execute_r2r(self->plan, x, x);
+
+  return 0;
+}
+
+static int
+psede_init_any_fct(psede_transf_t *tformer,
+		   psede_transf_call_t *tform)
+{
+  psede_fct_t *fct = NULL;
+
+  fct = psede_fct_alloc();
+  if (fct == NULL) goto fail;
+
+  tformer->transform = tform;
+  tformer->finalize = (psede_transf_finalize_t*) psede_fct_free;
+  tformer->params = fct;
+
+  return 0;
+
+ fail:
+
+  if (fct) psede_fct_free(fct);
+
+  return 1;
+}
+
+int
+psede_init_Tx_fct(psede_transf_t *t, void *null)
+{
+  return psede_init_any_fct(t, (psede_transf_call_t*) psede_Tx_fct_apply);
+}
+
+int
+psede_init_Tx_ifct(psede_transf_t *t, void *null)
+{
+  return psede_init_any_fct(t, (psede_transf_call_t*) psede_Tx_fct_apply_inv);
+}
+
+int
+psede_init_Tx_nodes(psede_transf_t *t, void *null)
+{
+  t->transform = (psede_transf_call_t*) psede_Tx_nodes;
+  t->finalize = NULL;
+  t->params = NULL;
 
   return 0;
 }
